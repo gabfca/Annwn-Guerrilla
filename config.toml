@@ -1,0 +1,8 @@
+[node]
+name = "node_name"
+
+[Discovery]
+secret_key = "some_key"
+
+[Honeypot]
+directory = "some_directory"

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Annwn Dashboard</title>
+  <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root {
+      --background-start: #121212;
+      --background-end: #222222;
+      --card-bg: rgba(25, 25, 25, 0.95);
+      --border-color: #444;
+      --text-light: #e0e0e0;
+      --text-muted: #999999;
+      --hover-bg: rgba(100, 100, 100, 0.25);
+      --shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+      --green-light: #81c784;
+      --green: #4caf50;
+      --green-dark: #2e7d32;
+      --green-darker: #1b5e20;
+      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --transition-speed: 0.3s;
+      --error-red: #f44336;
+      --warning-orange: #ff9800;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      margin: 0;
+      background: linear-gradient(135deg, var(--background-start), var(--background-end));
+      color: var(--text-light);
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        "sidebar header"
+        "sidebar content"
+        "footer footer";
+      height: 100vh;
+      gap: 1.25rem;
+      padding: 1.25rem;
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+    }
+
+    #sidebar {
+      grid-area: sidebar;
+      background: var(--card-bg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1.5px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-width: 320px;
+      max-width: 600px;
+      overflow-y: auto;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    #logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #logo {
+      width: 220px;
+      height: auto;
+      filter: drop-shadow(1.5px 1.5px 3px rgba(0, 0, 0, 0.7));
+      transition: transform 0.2s ease;
+    }
+
+    #logo:hover {
+      transform: scale(1.03);
+    }
+
+    #version-badge {
+      background: var(--green-dark);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+    }
+
+    #network-container {
+      position: relative;
+      width: 100%;
+      height: 460px;
+      border: 2.5px solid var(--border-color);
+      background: rgba(10, 30, 15, 0.4);
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.6);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    #network {
+      width: 100%;
+      height: 100%;
+    }
+
+    #network-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #network-info {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: var(--card-bg);
+      border: 2px solid var(--green);
+      box-shadow: 0 0 10px var(--green-dark);
+      color: var(--green-light);
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-align: center;
+      user-select: none;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #refresh-btn {
+      background: var(--green-dark);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    #refresh-btn:hover {
+      background: var(--green-darker);
+    }
+
+    #refresh-btn:active {
+      transform: scale(0.98);
+    }
+
+    #main-content {
+      grid-area: content;
+      overflow-y: auto;
+      padding-right: 1rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--green) var(--card-bg);
+      border-radius: 8px;
+    }
+
+    #main-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #main-content::-webkit-scrollbar-track {
+      background: var(--card-bg);
+      border-radius: 8px;
+    }
+
+    #main-content::-webkit-scrollbar-thumb {
+      background-color: var(--green);
+      border: 2px solid var(--card-bg);
+      border-radius: 8px;
+    }
+
+    h1, h2, h3 {
+      color: var(--green-light);
+      margin: 0.5rem 0 0.8rem 0;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-top: 0.75rem;
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      background: var(--green-dark);
+      color: white;
+    }
+
+    .status-badge.warning {
+      background: var(--warning-orange);
+    }
+
+    .status-badge.error {
+      background: var(--error-red);
+    }
+
+    .search-container {
+      position: relative;
+      width: 100%;
+    }
+
+    #comms-search {
+      width: 100%;
+      padding: 0.7rem 1rem 0.7rem 2.5rem;
+      border: 1.7px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-light);
+      font-size: 1rem;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    #comms-search::placeholder {
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    #comms-search:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.5rem 0;
+    }
+
+    .toggle-label {
+      font-size: 1rem;
+      user-select: none;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border-color);
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: var(--green);
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      box-shadow: var(--shadow);
+      font-size: 0.95rem;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .data-table thead tr {
+      background-color: var(--green);
+      color: #000;
+      font-weight: 700;
+    }
+
+    .data-table th, .data-table td {
+      padding: 0.8rem 1.2rem;
+      border-bottom: 1.3px solid var(--border-color);
+      text-align: left;
+      word-break: break-word;
+    }
+
+    .data-table th {
+      position: sticky;
+      top: 0;
+      background: var(--green);
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .data-table th.sortable:hover {
+      background-color: var(--green-dark);
+      color: #fff;
+    }
+
+    .data-table th.sort-asc::after {
+      content: " ▲";
+    }
+
+    .data-table th.sort-desc::after {
+      content: " ▼";
+    }
+
+    .data-table tbody tr {
+      transition: background-color 0.15s ease;
+    }
+
+    .data-table tbody tr:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 1rem 0;
+      user-select: none;
+    }
+
+    .pagination button {
+      background: var(--green-dark);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 100px;
+    }
+
+    .pagination button:hover:not(:disabled) {
+      background: var(--green-darker);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pagination-info {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    #footer {
+      grid-area: footer;
+      height: 4.8rem;
+      background: var(--card-bg);
+      border-top: 3px solid var(--green);
+      box-shadow: 0 -4px 12px var(--green-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 2rem;
+      color: var(--green-light);
+      font-weight: 600;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .footer-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .footer-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .footer-value {
+      font-weight: 700;
+      color: var(--green-light);
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.15);
+      border-top: 4px solid var(--green);
+      width: 28px;
+      height: 28px;
+      animation: spin 1s linear infinite;
+      margin: 1.2rem auto;
+      border-radius: 50%;
+    }
+
+    .loading-shimmer {
+      background: linear-gradient(90deg, rgba(40,40,40,0.5), rgba(70,70,70,0.5), rgba(40,40,40,0.5));
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: 4px;
+      height: 1.2rem;
+      margin: 0.2rem 0;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .fade-in {
+      animation: fadeIn ease 0.4s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 6rem;
+      right: 2rem;
+      background: var(--green-dark);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 300px;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      background: var(--error-red);
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: var(--card-bg);
+      color: var(--text-light);
+      text-align: center;
+      border-radius: 6px;
+      padding: 0.5rem;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      font-size: 0.9rem;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-areas:
+          "header"
+          "sidebar"
+          "content"
+          "footer";
+        height: auto;
+        min-height: 100vh;
+        padding: 0.75rem;
+        gap: 1rem;
+      }
+
+      #sidebar {
+        max-width: 100%;
+      }
+
+      #network-container {
+        height: 350px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar" role="complementary" aria-label="Sidebar with controls and network graph">
+    <div id="logo-container">
+      <img id="logo" src="/logo/annwn.png" alt="Annwn Logo" />
+    </div>
+    
+    <div class="control-group">
+      <h2>Node Network</h2>
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input id="comms-search" type="text" placeholder="Search comms events..." aria-label="Search communications events" />
+      </div>
+      
+      <div class="toggle-container">
+        <span class="toggle-label">Auto-refresh</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-auto-refresh" checked aria-checked="true" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="network-container">
+      <div id="network" aria-label="Known Nodes" role="region" tabindex="0"></div>
+      <div id="network-overlay">
+        <button id="refresh-btn">Refresh Now</button>
+      </div>
+    </div>
+
+    <div id="network-info">
+      <span id="node-count">0 nodes</span>
+      <span id="edge-count">0 connections</span>
+    </div>
+  </div>
+
+  <main id="main-content" role="main" aria-label="Communications data tables">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>Communications</h2>
+      <span class="status-badge" id="comms-status">Loading...</span>
+    </div>
+    
+    <div id="comms-container" tabindex="0" aria-live="polite">
+      <div class="spinner" aria-label="Loading"></div>
+    </div>
+    
+    <div class="pagination">
+      <button id="prev-page" disabled>Previous</button>
+      <span class="pagination-info" id="page-info">Page 1 of 1</span>
+      <button id="next-page" disabled>Next</button>
+    </div>
+  </main>
+
+  <footer id="footer" role="contentinfo" aria-label="Node status information">
+    <div class="footer-item">
+      <span class="footer-label">Node</span>
+      <span class="footer-value" id="node-name">{node_name}</span>
+    </div>
+    <div class="footer-item">
+      <span class="footer-label">IP</span>
+      <span class="footer-value" id="node-ip">{node_ip}</span>
+    </div>
+    <div class="footer-item">
+      <span class="footer-label">Last Updated</span>
+      <span class="footer-value" id="last-updated">Just now</span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Data and state management
+    const nodes = new vis.DataSet();
+    const edges = new vis.DataSet();
+    let network = null;
+    let commsData = [];
+    let filteredData = [];
+    let currentSort = { key: null, direction: 'asc' };
+    let autoRefresh = true;
+    let currentPage = 1;
+    const rowsPerPage = 20;
+    let lastUpdateTime = new Date();
+
+    // DOM elements
+    const commsContainer = document.getElementById('comms-container');
+    const commsSearch = document.getElementById('comms-search');
+    const toggleAutoRefresh = document.getElementById('toggle-auto-refresh');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
+    const nodeCountEl = document.getElementById('node-count');
+    const edgeCountEl = document.getElementById('edge-count');
+    const commsStatus = document.getElementById('comms-status');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const toast = document.getElementById('toast');
+    const networkOverlay = document.getElementById('network-overlay');
+
+    // Initialize the dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      loadGraph();
+      loadCommsData();
+      setupAutoRefresh();
+      setupEventListeners();
+      updateLastUpdated();
+    });
+
+    // Network graph functions
+    async function loadGraph() {
+      try {
+        showLoadingState('#network-container');
+        
+        const res = await fetch('/graph');
+        if (!res.ok) throw new Error("Failed to fetch graph data");
+        const data = await res.json();
+
+        // Update nodes
+        const incomingNodeIds = new Set(data.nodes.map(n => n.id));
+        nodes.forEach(node => {
+          if (!incomingNodeIds.has(node.id)) {
+            nodes.remove(node.id);
+          }
+        });
+        nodes.update(data.nodes);
+
+        // Update edges
+        const edgeId = edge => `${edge.from}->${edge.to}`;
+        const incomingEdgeIds = new Set(data.edges.map(edgeId));
+        edges.forEach(edge => {
+          if (!incomingEdgeIds.has(edge.id)) {
+            edges.remove(edge.id);
+          }
+        });
+        edges.update(data.edges.map(edge => ({ id: edgeId(edge), ...edge })));
+
+        // Initialize network if not already done
+        if (!network) {
+          initNetwork();
+        }
+
+        // Update counts
+        nodeCountEl.textContent = `${nodes.length} node${nodes.length !== 1 ? 's' : ''}`;
+        edgeCountEl.textContent = `${edges.length} connection${edges.length !== 1 ? 's' : ''}`;
+        
+        updateLastUpdated();
+      } catch (error) {
+        console.error("Graph error:", error);
+        showToast("Failed to load network data", "error");
+      } finally {
+        hideLoadingState('#network-container');
+      }
+    }
+
+    function initNetwork() {
+      const container = document.getElementById('network');
+      const data = { nodes, edges };
+      const options = {
+        nodes: {
+          shape: 'dot',
+          size: 16,
+          color: {
+            background: '#4caf50',
+            border: '#2e7d32',
+            highlight: {
+              background: '#81c784',
+              border: '#4caf50'
+            }
+          },
+          font: {
+            size: 14,
+            color: '#e6ffe6',
+            strokeWidth: 3,
+            strokeColor: 'rgba(0,0,0,0.7)'
+          },
+          borderWidth: 2,
+          shadow: true,
+          physics: true
+        },
+        edges: {
+          arrows: {
+            to: {
+              enabled: true,
+              scaleFactor: 0.6
+            }
+          },
+          color: {
+            color: '#4caf50',
+            highlight: '#81c784',
+            hover: '#81c784'
+          },
+          width: 1.5,
+          hoverWidth: 2,
+          selectionWidth: 2,
+          smooth: {
+            type: 'continuous'
+          },
+          font: {
+            color: '#a5cba5',
+            size: 12,
+            background: 'rgba(30,30,30,0.7)',
+            strokeWidth: 1,
+            strokeColor: 'rgba(0,0,0,0.7)'
+          }
+        },
+        physics: {
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: {
+            gravitationalConstant: -50,
+            centralGravity: 0.01,
+            springLength: 100,
+            damping: 0.4
+          },
+          stabilization: {
+            enabled: true,
+            iterations: 1000,
+            updateInterval: 25
+          }
+        },
+        interaction: {
+          hover: true,
+          tooltipDelay: 200,
+          hideEdgesOnDrag: true,
+          multiselect: false
+        }
+      };
+
+      network = new vis.Network(container, data, options);
+
+      // Network event listeners
+      network.on('selectNode', params => {
+        if (params.nodes.length === 1) {
+          const nodeId = params.nodes[0];
+          const node = nodes.get(nodeId);
+          commsSearch.value = node.title;
+          filterAndRenderCommsData();
+        }
+      });
+
+      network.on('stabilizationIterationsDone', () => {
+        network.fit({ animation: { duration: 1000, easingFunction: 'easeInOutQuad' } });
+      });
+    }
+
+    // Communications data functions
+    async function loadCommsData() {
+      try {
+        showLoadingState('#comms-container');
+        commsStatus.textContent = "Loading...";
+        commsStatus.className = "status-badge";
+        
+        const res = await fetch('/comms');
+        if (!res.ok) throw new Error("Failed to fetch comms data");
+        const data = await res.json();
+        
+        commsData = data;
+        filteredData = [...data];
+        
+        if (data.length === 0) {
+          commsContainer.innerHTML = '<p>No communication events found.</p>';
+          commsStatus.textContent = "No data";
+          commsStatus.className = "status-badge warning";
+          return;
+        }
+        
+        commsStatus.textContent = `${data.length} records`;
+        commsStatus.className = "status-badge";
+        
+        filterAndRenderCommsData();
+        updateLastUpdated();
+      } catch (error) {
+        console.error("Comms error:", error);
+        commsContainer.innerHTML = '<p>Error loading communication events.</p>';
+        commsStatus.textContent = "Error";
+        commsStatus.className = "status-badge error";
+        showToast("Failed to load communication data", "error");
+      } finally {
+        hideLoadingState('#comms-container');
+      }
+    }
+
+    function filterAndRenderCommsData() {
+      const searchTerm = commsSearch.value.toLowerCase();
+      
+      // Filter data
+      if (searchTerm) {
+        filteredData = commsData.filter(row => {
+          return Object.values(row).some(
+            val => val && val.toString().toLowerCase().includes(searchTerm)
+          );
+        });
+      } else {
+        filteredData = [...commsData];
+      }
+      
+      // Sort data if needed
+      if (currentSort.key) {
+        filteredData.sort((a, b) => {
+          const valA = a[currentSort.key] || '';
+          const valB = b[currentSort.key] || '';
+          return valA.toString().localeCompare(valB.toString()) * 
+                 (currentSort.direction === 'asc' ? 1 : -1);
+        });
+      }
+      
+      // Update pagination
+      currentPage = 1;
+      updatePagination();
+      
+      // Render current page
+      renderCurrentPage();
+    }
+
+    function renderCurrentPage() {
+  if (filteredData.length === 0) {
+    commsContainer.innerHTML ='<p>No matching records found.</p>';
+    return;
+  }
+  
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const endIdx = Math.min(startIdx + rowsPerPage, filteredData.length);
+  const pageData = filteredData.slice(startIdx, endIdx);
+  
+  // Get all unique keys from the data, ignoring 'created_at_timestamp'
+  const keys = [...new Set(
+    filteredData.flatMap(row => Object.keys(row))
+  )].filter(key => key !== 'created_at_timestamp').sort();
+
+  // Define a mapping from raw column name to pretty name
+  const columnNames = {
+    id: "ID",
+    source_node_ip: "Source Node IP",
+    source_service: "Source Service",
+    message_title: "Message Title",
+    message_contents: "Message Contents",
+    propagation_tl: "Propagation TTL",
+    received_at: "Received At"
+  };
+  
+  // Create table
+  const table = document.createElement('table');
+  table.className = 'data-table fade-in';
+
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+
+  keys.forEach(key => {
+    const th = document.createElement('th');
+    th.textContent = columnNames[key] || key;
+    th.className = 'sortable';
+
+    if (currentSort.key === key) {
+      th.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  
+    th.addEventListener('click', () => {
+      if (currentSort.key === key) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.key = key;
+        currentSort.direction = 'asc';
+      }
+      filterAndRenderCommsData();
+    });
+
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  pageData.forEach(row => {
+    const tr = document.createElement('tr');
+    
+    keys.forEach(key => {
+      const td = document.createElement('td');
+      td.textContent = row[key] ?? '';
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  commsContainer.innerHTML = '';
+  commsContainer.appendChild(table);
+}
+
+    // Pagination functions
+    function updatePagination() {
+      const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+      
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      prevPageBtn.disabled = currentPage <= 1;
+      nextPageBtn.disabled = currentPage >= totalPages || totalPages === 0;
+    }
+
+    function goToPage(page) {
+      if (page < 1 || page > Math.ceil(filteredData.length / rowsPerPage)) return;
+      
+      currentPage = page;
+      updatePagination();
+      renderCurrentPage();
+      
+      // Scroll to top of table
+      commsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Utility functions
+    function updateLastUpdated() {
+      lastUpdateTime = new Date();
+      const timeString = lastUpdateTime.toLocaleTimeString();
+      lastUpdatedEl.textContent = timeString;
+    }
+
+    function showToast(message, type = '') {
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function showLoadingState(selector) {
+      const element = document.querySelector(selector);
+      if (!element) return;
+      
+      const loader = document.createElement('div');
+      loader.className = 'spinner';
+      loader.setAttribute('aria-label', 'Loading');
+      element.appendChild(loader);
+    }
+
+    function hideLoadingState(selector) {
+      const element = document.querySelector(selector);
+      if (!element) return;
+      
+      const loader = element.querySelector('.spinner');
+      if (loader) {
+        loader.remove();
+      }
+    }
+
+    function setupAutoRefresh() {
+      setInterval(() => {
+        if (autoRefresh) {
+          loadGraph();
+          loadCommsData();
+        }
+      }, 10000); // Refresh every 10 seconds
+    }
+
+    function setupEventListeners() {
+      // Search input
+      commsSearch.addEventListener('input', () => {
+        filterAndRenderCommsData();
+      });
+      
+      // Auto-refresh toggle
+      toggleAutoRefresh.addEventListener('change', () => {
+        autoRefresh = toggleAutoRefresh.checked;
+        showToast(`Auto-refresh ${autoRefresh ? 'enabled' : 'disabled'}`);
+      });
+      
+      // Pagination buttons
+      prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
+      nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+      
+      // Manual refresh button
+      refreshBtn.addEventListener('click', () => {
+        loadGraph();
+        loadCommsData();
+        showToast("Refreshing data...");
+      });
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+F to focus search
+        if (e.ctrlKey && e.key === 'f') {
+          e.preventDefault();
+          commsSearch.focus();
+        }
+        
+        // Esc to clear search
+        if (e.key === 'Escape' && document.activeElement === commsSearch) {
+          commsSearch.value = '';
+          filterAndRenderCommsData();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

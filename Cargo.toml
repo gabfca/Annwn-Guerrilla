@@ -1,0 +1,28 @@
+
+[package]
+name = "guerrilla"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.4"
+axum-server = "0.7.2"
+base64 = "0.22.1"
+chrono = "0.4.41"
+local-ip-address = "0.6.5"
+notify = "8.0.0"
+once_cell = "1.21.3"
+pcap = "2.2.0"
+r2d2 = "0.8.10"
+r2d2_sqlite = "0.28.0"
+rand = "0.9.1"
+ring = "0.17.14"
+rsa = "0.9.8"
+rusqlite = "0.35.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+sha2 = "0.10.9"
+tokio = { version = "1.45.0", features = ["full"] }
+toml = "0.8.22"
+tower-http = { version = "0.6.5", features = ["fs"] }
+urlencoding = "2.1.3"
